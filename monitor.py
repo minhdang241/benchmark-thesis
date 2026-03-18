@@ -17,15 +17,12 @@ class ResourceMonitor:
         self._stop_event = threading.Event()
         self._thread = None
 
-        self.cpu_samples = []       # system-wide CPU % per sample
-        self.mem_samples_mb = []    # RSS of target process in MB
-        self.net_rx_bytes = []      # cumulative RX bytes snapshots
-        self.net_tx_bytes = []      # cumulative TX bytes snapshots
+        self.cpu_samples = []  # system-wide CPU % per sample
+        self.mem_samples_mb = []  # RSS of target process in MB
+        self.net_rx_bytes = []  # cumulative RX bytes snapshots
+        self.net_tx_bytes = []  # cumulative TX bytes snapshots
         self._pid = None
 
-    # ----------------------------------------------------------
-    # Sampling loop
-    # ----------------------------------------------------------
     def _sample_loop(self):
         process = psutil.Process(self._pid) if self._pid else None
         # Prime the per-interval CPU measurement
@@ -50,10 +47,7 @@ class ResourceMonitor:
             self.net_rx_bytes.append(net.bytes_recv)
             self.net_tx_bytes.append(net.bytes_sent)
 
-    # ----------------------------------------------------------
-    # Public interface
-    # ----------------------------------------------------------
-    def start(self, pid: int = None):
+    def start(self, pid: int = 0) -> None:
         """Begin sampling. Optionally track a specific PID for memory."""
         self._pid = pid
         self.cpu_samples.clear()
@@ -80,15 +74,23 @@ class ResourceMonitor:
         }
 
         if self.cpu_samples:
-            result["avg_cpu_pct"] = round(sum(self.cpu_samples) / len(self.cpu_samples), 2)
+            result["avg_cpu_pct"] = round(
+                sum(self.cpu_samples) / len(self.cpu_samples), 2
+            )
             result["max_cpu_pct"] = round(max(self.cpu_samples), 2)
 
         if self.mem_samples_mb:
             result["peak_mem_mb"] = round(max(self.mem_samples_mb), 2)
-            result["avg_mem_mb"] = round(sum(self.mem_samples_mb) / len(self.mem_samples_mb), 2)
+            result["avg_mem_mb"] = round(
+                sum(self.mem_samples_mb) / len(self.mem_samples_mb), 2
+            )
 
         if len(self.net_rx_bytes) >= 2:
-            result["net_rx_mb"] = round((self.net_rx_bytes[-1] - self.net_rx_bytes[0]) / (1024 * 1024), 4)
-            result["net_tx_mb"] = round((self.net_tx_bytes[-1] - self.net_tx_bytes[0]) / (1024 * 1024), 4)
+            result["net_rx_mb"] = round(
+                (self.net_rx_bytes[-1] - self.net_rx_bytes[0]) / (1024 * 1024), 4
+            )
+            result["net_tx_mb"] = round(
+                (self.net_tx_bytes[-1] - self.net_tx_bytes[0]) / (1024 * 1024), 4
+            )
 
         return result

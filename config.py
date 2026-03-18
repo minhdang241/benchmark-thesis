@@ -8,7 +8,7 @@ Adjust paths below to match your Raspberry Pi setup.
 # Paths — edit these to match your environment
 # ============================================================
 FOLDER_PATH = "/Users/minhdg241/Desktop/thesis/codebase"
-LLAMA_CPP_BIN = f"{FOLDER_PATH}/llama.cpp/build/bin/llama-cli"
+LLAMA_CPP_BIN = f"{FOLDER_PATH}/llama.cpp/build/bin/llama-completion"
 DLLAMA_BIN = f"{FOLDER_PATH}/distributed-llama/dllama"
 MODEL_DIR = "models/"
 OUTPUT_DIR = "logs/"

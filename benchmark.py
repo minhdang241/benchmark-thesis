@@ -60,6 +60,8 @@ def build_llama_cpp_cmd(
         str(NUM_THREADS),
         "--simple-io",
         "--single-turn",
+        "--no-display-prompt",
+        "-no-cnv",
     ]
 
 

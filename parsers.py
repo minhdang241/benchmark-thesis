@@ -36,7 +36,7 @@ def parse_llama_cpp_output(
         "total_time_ms": wall_time_ms,
         "total_tokens": 0,
         "ttft_ms": 0.0,  # estimated as prompt_eval_time + first token eval
-        "generated_text": "",
+        "generated_text": stdout_text.strip(),
         "parse_errors": [],
     }
 
@@ -79,11 +79,6 @@ def parse_llama_cpp_output(
         result["total_time_ms"] = float(m.group(1))
         result["total_tokens"] = int(m.group(2))
     
-
-    m = re.search(r"\[Start thinking\]\n(.*?)\n\n\[", stdout_text, re.DOTALL)
-    if m:
-        result["generated_text"] = m.group(1).strip()
-
     # TTFT estimate: prompt processing + one token generation step
     if result["prompt_eval_time_ms"] > 0 and result["eval_tokens"] > 0:
         per_token_ms = result["eval_time_ms"] / result["eval_tokens"]
