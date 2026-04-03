@@ -109,6 +109,7 @@ def run_single_prompt(
     model_path: str,
     prompt_data: dict,
     tokenizer_path: str = "",
+    load_peak_mem_mb: float = 0.0,
 ) -> tuple:
     """
     Execute one prompt and collect all metrics.
@@ -123,8 +124,13 @@ def run_single_prompt(
         parser_fn = parse_llama_cpp_output
     elif framework == "distributed_llama":
         assert tokenizer_path != ""
+        steps = n_predict
+        if prompt_data["id"] == "P03":
+            # dllama --steps counts prompt + generation tokens;
+            # ensure it covers the full input for Comparative Analysis.
+            steps = max(n_predict, len(prompt_text) // 4)
         cmd = build_dllama_cmd(
-            binary, model_path, tokenizer_path, prompt_text, n_predict
+            binary, model_path, tokenizer_path, prompt_text, steps
         )
         parser_fn = parse_dllama_output
     else:
@@ -207,8 +213,9 @@ def run_single_prompt(
         # Resource metrics
         "avg_cpu_pct": resource_metrics["avg_cpu_pct"],  # average CPU utilization
         "max_cpu_pct": resource_metrics["max_cpu_pct"],
-        "peak_mem_mb": resource_metrics["peak_mem_mb"],  # peak memory usage
-        "avg_mem_mb": resource_metrics["avg_mem_mb"],  # average memory usage
+        "load_peak_mem_mb": load_peak_mem_mb,  # peak memory while model is loaded idle
+        "peak_mem_mb": resource_metrics["peak_mem_mb"],  # peak memory during inference
+        "avg_mem_mb": resource_metrics["avg_mem_mb"],  # average memory during inference
         "net_rx_mb": resource_metrics["net_rx_mb"],
         "net_tx_mb": resource_metrics["net_tx_mb"],
         # Wall time from Python (backup)
@@ -228,10 +235,11 @@ def run_single_prompt(
 
 def measure_model_load_time(
     binary: str, framework: str, model_path: str, tokenizer_path: str = ""
-) -> float:
+) -> tuple:
     """
-    Measure model load time by running a minimal prompt and extracting
-    the load_time field from the output.
+    Measure model load time and peak RSS while the model is loaded idle,
+    by running a minimal prompt with the resource monitor attached.
+    Returns (load_time_ms, load_peak_mem_mb).
     """
     dummy_prompt = "Hi"
     n_predict = 1
@@ -245,17 +253,23 @@ def measure_model_load_time(
         )
         parser_fn = parse_dllama_output
     else:
-        return 0.0
+        return 0.0, 0.0
 
+    monitor = ResourceMonitor(interval=MONITOR_INTERVAL)
     wall_start = time.monotonic()
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        monitor.start(pid=proc.pid)
+        stdout, stderr = proc.communicate(timeout=300)
         wall_time_ms = (time.monotonic() - wall_start) * 1000.0
-        parsed = parser_fn(proc.stderr, proc.stdout, wall_time_ms)
-        return parsed["load_time_ms"] if parsed["load_time_ms"] > 0 else wall_time_ms
+        resource_metrics = monitor.stop()
+        parsed = parser_fn(stderr, stdout, wall_time_ms)
+        load_time_ms = parsed["load_time_ms"] if parsed["load_time_ms"] > 0 else wall_time_ms
+        return load_time_ms, resource_metrics["peak_mem_mb"]
     except Exception as e:
+        monitor.stop()
         print(f"  [WARN] Failed to measure load time: {e}")
-        return 0.0
+        return 0.0, 0.0
 
 
 # ============================================================
@@ -286,6 +300,7 @@ CSV_FIELDS = [
     "total_tokens",
     "avg_cpu_pct",
     "max_cpu_pct",
+    "load_peak_mem_mb",
     "peak_mem_mb",
     "avg_mem_mb",
     "net_rx_mb",
@@ -381,18 +396,19 @@ def run_benchmark(config_id: str, model_filter: str = "", dry_run: bool = False)
         print(f"  File:  {model_path}")
         print(f"{'─' * 60}")
 
-        # Measure model load time
+        # Measure model load time and idle memory
+        load_peak_mem_mb = 0.0
         if not dry_run:
             print(f"  Measuring model load time...")
-            load_time = measure_model_load_time(
+            load_time, load_peak_mem_mb = measure_model_load_time(
                 binary, framework, model_path, tokenizer_path
             )
-            print(f"  Model load time: {load_time:.1f} ms")
+            print(f"  Model load time: {load_time:.1f} ms | Load mem: {load_peak_mem_mb:.0f} MB")
 
             # Save load time metadata
             with open(os.path.join(run_dir, f"{model_id}_load_time.json"), "w") as f:
                 json.dump(
-                    {"model_id": model_id, "load_time_ms": load_time}, f, indent=2
+                    {"model_id": model_id, "load_time_ms": load_time, "load_peak_mem_mb": load_peak_mem_mb}, f, indent=2
                 )
 
         # Iterate prompts
@@ -439,6 +455,7 @@ def run_benchmark(config_id: str, model_filter: str = "", dry_run: bool = False)
                     model_path,
                     prompt_data,
                     tokenizer_path,
+                    load_peak_mem_mb,
                 )
 
                 # Add model and run metadata
