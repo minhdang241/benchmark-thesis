@@ -94,7 +94,7 @@ def parse_dllama_output(
     Parse Distributed Llama output.
 
     Expected format:
-        🔷️ Eval  111 ms Sync    0 ms | Sent     0 kB Recv     0 kB | (10 tokens)
+        🔷 Eval  111 ms Sync    0 ms | Sent     0 kB Recv     0 kB | (10 tokens)
         🔶 Pred   18 ms Sync    0 ms | Sent     0 kB Recv     0 kB |  Edge
         ...
         Evaluation
@@ -106,6 +106,10 @@ def parse_dllama_output(
            tokens/s: 62.05 (16.12 ms/tok)
     """
     combined = stderr_text + "\n" + stdout_text
+    
+    # Normalize line endings to handle terminal carriage returns (\r)
+    combined = combined.replace("\r\n", "\n").replace("\r", "\n")
+    
     result = {
         "load_time_ms": 0.0,
         "prompt_eval_time_ms": 0.0,
@@ -157,8 +161,9 @@ def parse_dllama_output(
     if pred_times and result["prompt_eval_time_ms"] > 0:
         result["ttft_ms"] = result["prompt_eval_time_ms"] + float(pred_times[0])
 
-    # --- Generated text: tokens from Pred lines (after the last | ) ---
-    token_matches = re.findall(r"Pred.*\|\s+(.+)$", combined, re.MULTILINE)
+    # --- Generated text: tokens from Pred lines ---
+    # Matches up to the second pipe, consumes exactly 1 space, and stops at newlines or icon markers
+    token_matches = re.findall(r"Pred.*?\|.*?\| (.*?)(?=\n|🔶|🔷|$)", combined)
     if token_matches:
         result["generated_text"] = "".join(token_matches).strip()
     else:

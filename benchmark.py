@@ -129,9 +129,7 @@ def run_single_prompt(
             # dllama --steps counts prompt + generation tokens;
             # ensure it covers the full input for Comparative Analysis.
             steps = max(n_predict, len(prompt_text) // 4)
-        cmd = build_dllama_cmd(
-            binary, model_path, tokenizer_path, prompt_text, steps
-        )
+        cmd = build_dllama_cmd(binary, model_path, tokenizer_path, prompt_text, steps)
         parser_fn = parse_dllama_output
     else:
         raise ValueError(f"Unknown framework: {framework}")
@@ -258,13 +256,17 @@ def measure_model_load_time(
     monitor = ResourceMonitor(interval=MONITOR_INTERVAL)
     wall_start = time.monotonic()
     try:
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        proc = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
         monitor.start(pid=proc.pid)
         stdout, stderr = proc.communicate(timeout=300)
         wall_time_ms = (time.monotonic() - wall_start) * 1000.0
         resource_metrics = monitor.stop()
         parsed = parser_fn(stderr, stdout, wall_time_ms)
-        load_time_ms = parsed["load_time_ms"] if parsed["load_time_ms"] > 0 else wall_time_ms
+        load_time_ms = (
+            parsed["load_time_ms"] if parsed["load_time_ms"] > 0 else wall_time_ms
+        )
         return load_time_ms, resource_metrics["peak_mem_mb"]
     except Exception as e:
         monitor.stop()
@@ -403,12 +405,20 @@ def run_benchmark(config_id: str, model_filter: str = "", dry_run: bool = False)
             load_time, load_peak_mem_mb = measure_model_load_time(
                 binary, framework, model_path, tokenizer_path
             )
-            print(f"  Model load time: {load_time:.1f} ms | Load mem: {load_peak_mem_mb:.0f} MB")
+            print(
+                f"  Model load time: {load_time:.1f} ms | Load mem: {load_peak_mem_mb:.0f} MB"
+            )
 
             # Save load time metadata
             with open(os.path.join(run_dir, f"{model_id}_load_time.json"), "w") as f:
                 json.dump(
-                    {"model_id": model_id, "load_time_ms": load_time, "load_peak_mem_mb": load_peak_mem_mb}, f, indent=2
+                    {
+                        "model_id": model_id,
+                        "load_time_ms": load_time,
+                        "load_peak_mem_mb": load_peak_mem_mb,
+                    },
+                    f,
+                    indent=2,
                 )
 
         # Iterate prompts

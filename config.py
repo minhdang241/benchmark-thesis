@@ -24,32 +24,32 @@ MODELS_LLAMA = {
         "description": "Qwen3 1.7B Q4_0",
         "approx_size_gb": 1.1,
     },
-    "llama-3.2-1b-instruct-q4_0": {
-        "tier": "A",
-        "filename": "llama/tierA/llama-3.2-1B/llama-3.2-1b-instruct-q4_0.gguf",
-        "description": "Llama 3.2 1B Instruct Q4_0",
-        "approx_size_gb": 3.4,
-    },
-    # Tier B: Medium models
-    "llama-3.1-8b-instruct-q4_0": {
-        "tier": "B",
-        "filename": "llama/tierB/meta-llama-3.1-8B/meta-llama-3.1-8b-instruct-q4_0.gguf",
-        "description": "Llama 3.1 8B Instruct Q4_0",
-        "approx_size_gb": 6.3,
-    },
-    "qwen3-8b-q4_0": {
-        "tier": "B",
-        "filename": "llama/tierB/qwen3-8B/qwen3-8b-q4_0.gguf",
-        "description": "Qwen3 8B Q4_0",
-        "approx_size_gb": 6.7,
-    },
-    # Tier C: Large models
-    "qwen3-30b-q4_0": {
-        "tier": "C",
-        "filename": "llama/tierC/qwen3-30B-A3B/qwen3-30b-a3b-instruct-2507-q4_0.gguf",
-        "description": "Qwen3 30B Q4_0",
-        "approx_size_gb": 17.3,
-    },
+    # "llama-3.2-1b-instruct-q4_0": {
+    #     "tier": "A",
+    #     "filename": "llama/tierA/llama-3.2-1B/llama-3.2-1b-instruct-q4_0.gguf",
+    #     "description": "Llama 3.2 1B Instruct Q4_0",
+    #     "approx_size_gb": 3.4,
+    # },
+    # # Tier B: Medium models
+    # "llama-3.1-8b-instruct-q4_0": {
+    #     "tier": "B",
+    #     "filename": "llama/tierB/meta-llama-3.1-8B/meta-llama-3.1-8b-instruct-q4_0.gguf",
+    #     "description": "Llama 3.1 8B Instruct Q4_0",
+    #     "approx_size_gb": 6.3,
+    # },
+    # "qwen3-8b-q4_0": {
+    #     "tier": "B",
+    #     "filename": "llama/tierB/qwen3-8B/qwen3-8b-q4_0.gguf",
+    #     "description": "Qwen3 8B Q4_0",
+    #     "approx_size_gb": 6.7,
+    # },
+    # # Tier C: Large models
+    # "qwen3-30b-q4_0": {
+    #     "tier": "C",
+    #     "filename": "llama/tierC/qwen3-30B-A3B/qwen3-30b-a3b-instruct-2507-q4_0.gguf",
+    #     "description": "Qwen3 30B Q4_0",
+    #     "approx_size_gb": 17.3,
+    # },
 }
 
 
@@ -62,28 +62,28 @@ MODELS_DLLAMA = {
         "description": "Qwen3 1.7B Q4_0",
         "approx_size_gb": 2.2,
     },
-    "llama-3.2-3b-instruct-q4_0": {
-        "tier": "A",
-        "filename": "dllama/tierA/llama-3.2-1B/dllama_model_llama3.2-1b-instruct_q40.m",
-        "tokenizer_name": "dllama/tierA/llama-3.2-1B/dllama_tokenizer_llama3_2.t",
-        "description": "Llama 3.2 1B Instruct Q4_0",
-        "approx_size_gb": 3.4,
-    },
-    # Tier B: Medium models
-    "llama-3.1-8b-instruct-q4_0": {
-        "tier": "B",
-        "filename": "dllama/tierB/meta-llama-3.1-8B/dllama_model_llama3.1_instruct_q40.m",
-        "tokenizer_name": "dllama/tierB/meta-llama-3.1-8B/dllama_tokenizer_llama_3_1.t",
-        "description": "Llama 3.1 8B Instruct Q4_0",
-        "approx_size_gb": 6.3,
-    },
-    "qwen3-8b-q4_0": {
-        "tier": "B",
-        "filename": "dllama/tierB/qwen3-8B/dllama_model_qwen3_8b_q40.m",
-        "tokenizer_name": "dllama/tierB/qwen3-8B/dllama_tokenizer_qwen3_8b.t",
-        "description": "Qwen3 8B Q4_0",
-        "approx_size_gb": 6.7,
-    },
+    # "llama-3.2-3b-instruct-q4_0": {
+    #     "tier": "A",
+    #     "filename": "dllama/tierA/llama-3.2-1B/dllama_model_llama3.2-1b-instruct_q40.m",
+    #     "tokenizer_name": "dllama/tierA/llama-3.2-1B/dllama_tokenizer_llama3_2.t",
+    #     "description": "Llama 3.2 1B Instruct Q4_0",
+    #     "approx_size_gb": 3.4,
+    # },
+    # # Tier B: Medium models
+    # "llama-3.1-8b-instruct-q4_0": {
+    #     "tier": "B",
+    #     "filename": "dllama/tierB/meta-llama-3.1-8B/dllama_model_llama3.1_instruct_q40.m",
+    #     "tokenizer_name": "dllama/tierB/meta-llama-3.1-8B/dllama_tokenizer_llama_3_1.t",
+    #     "description": "Llama 3.1 8B Instruct Q4_0",
+    #     "approx_size_gb": 6.3,
+    # },
+    # "qwen3-8b-q4_0": {
+    #     "tier": "B",
+    #     "filename": "dllama/tierB/qwen3-8B/dllama_model_qwen3_8b_q40.m",
+    #     "tokenizer_name": "dllama/tierB/qwen3-8B/dllama_tokenizer_qwen3_8b.t",
+    #     "description": "Qwen3 8B Q4_0",
+    #     "approx_size_gb": 6.7,
+    # },
 }
 
 # ============================================================
