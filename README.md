@@ -27,7 +27,7 @@ sudo systemctl disable avahi-daemon
 ```bash
 git clone https://github.com/ggerganov/llama.cpp
 cd llama.cpp
-cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake -B build -DGGML_RPC=ON
 cmake --build build --config Release -j4
 # Binary: /home/pi/llama.cpp/build/bin/llama-cli
 ````

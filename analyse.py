@@ -52,9 +52,12 @@ def summarise(rows: list):
         desc = model_rows[0].get("model_description", model_id)
 
         print(f"\n  ── {desc} (Tier {tier}) ──")
+        # print(f"  {'Prompt':<8} {'Eval tok/s':>10} {'Prompt tok/s':>12} "
+            #   f"{'TTFT ms':>9} {'E2E ms':>9} {'CPU%':>6} {'Mem MB':>8}")
         print(f"  {'Prompt':<8} {'Eval tok/s':>10} {'Prompt tok/s':>12} "
-              f"{'TTFT ms':>9} {'E2E ms':>9} {'CPU%':>6} {'Mem MB':>8}")
-        print(f"  {'─' * 8} {'─' * 10} {'─' * 12} {'─' * 9} {'─' * 9} {'─' * 6} {'─' * 8}")
+              f"{'TTFT ms':>9} {'CPU%':>6} {'Mem MB':>8}")
+
+        print(f"  {'─' * 8} {'─' * 10} {'─' * 12} {'─' * 9} {'─' * 6} {'─' * 8}")
 
         # Group by prompt within this model
         by_prompt = defaultdict(list)
@@ -80,8 +83,11 @@ def summarise(rows: list):
 
             avg = lambda lst: sum(lst) / len(lst) if lst else 0
 
+            # print(f"  {prompt_id:<8} {avg(eval_rates):>10.2f} {avg(prompt_rates):>12.2f} "
+                #   f"{avg(ttfts):>9.1f} {avg(e2es):>9.0f} {avg(cpus):>6.1f} {avg(mems):>8.0f}")
+
             print(f"  {prompt_id:<8} {avg(eval_rates):>10.2f} {avg(prompt_rates):>12.2f} "
-                  f"{avg(ttfts):>9.1f} {avg(e2es):>9.0f} {avg(cpus):>6.1f} {avg(mems):>8.0f}")
+                  f"{avg(ttfts):>9.1f} {avg(cpus):>6.1f} {avg(mems):>8.0f}")
 
             model_eval_rates.extend(eval_rates)
             model_prompt_rates.extend(prompt_rates)
@@ -92,7 +98,7 @@ def summarise(rows: list):
 
         avg = lambda lst: sum(lst) / len(lst) if lst else 0
         print(f"  {'AVERAGE':<8} {avg(model_eval_rates):>10.2f} {avg(model_prompt_rates):>12.2f} "
-              f"{avg(model_ttfts):>9.1f} {avg(model_e2es):>9.0f} {avg(model_cpus):>6.1f} {avg(model_mems):>8.0f}")
+              f"{avg(model_ttfts):>9.1f} {avg(model_cpus):>6.1f} {avg(model_mems):>8.0f}")
 
 
 def compare_configs(rows_list: list):
