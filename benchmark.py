@@ -66,6 +66,7 @@ def build_llama_cpp_cmd(
     ]
     if rpc_servers:
         cmd.extend(["--rpc", rpc_servers])
+        cmd.extend(["-ts", "1,1"])
 
     cmd.extend(["-p", prompt])
     return cmd
