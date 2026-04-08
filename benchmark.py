@@ -130,7 +130,6 @@ def run_single_prompt(
         cmd = build_llama_cpp_cmd(
             binary, model_path, prompt_text, n_predict, config.get("rpc_servers", "")
         )
-        print(" ".join(cmd))
         parser_fn = parse_llama_cpp_output
     elif framework == "distributed_llama":
         assert tokenizer_path != ""
