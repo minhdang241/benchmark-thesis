@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Benchmark runner for C1 (llama.cpp single-device) and C2 (Distributed Llama single-node).
+Benchmark runner for C1-C4 setups.
 
 Usage:
     python3 benchmark.py --config C1                 # run all models for C1
-    python3 benchmark.py --config C2                 # run all models for C2
+    python3 benchmark.py --config C3                 # run distributed llama.cpp
     python3 benchmark.py --config C1 --model qwen3-1.7b-q4_0   # single model
     python3 benchmark.py --config C1 --dry-run       # show commands without executing
 
@@ -44,10 +44,10 @@ from prompts import PROMPTS
 
 
 def build_llama_cpp_cmd(
-    binary: str, model_path: str, prompt: str, n_predict: int
+    binary: str, model_path: str, prompt: str, n_predict: int, rpc_servers: str = ""
 ) -> list:
-    """Build the llama-cli command."""
-    return [
+    """Build the llama-cli command, conditionally injecting RPC flags."""
+    cmd = [
         binary,
         "-m",
         model_path,
@@ -61,23 +61,26 @@ def build_llama_cpp_cmd(
         "--single-turn",
         "--no-display-prompt",
         "-no-cnv",
-        "-p",
-        prompt,
+        "-ts",
+        "1,10",
     ]
+    if rpc_servers:
+        cmd.extend(["--rpc", rpc_servers])
+
+    cmd.extend(["-p", prompt])
+    return cmd
 
 
 def build_dllama_cmd(
-    binary: str, model_path: str, tokenizer_path: str, prompt: str, n_predict: int
+    binary: str,
+    model_path: str,
+    tokenizer_path: str,
+    prompt: str,
+    n_predict: int,
+    workers: str = "",
 ) -> list:
-    """
-    Build the dllama inference command for single-node mode.
-
-    NOTE: Adjust flags to match your Distributed Llama version.
-    Common flags:
-        dllama inference --model <path> --prompt <text> --steps <n> --temperature 0
-    Some versions use --nWorkers 0 for single-node.
-    """
-    return [
+    """Build the dllama inference command, conditionally injecting worker flags."""
+    cmd = [
         binary,
         "inference",
         "--model",
@@ -92,9 +95,12 @@ def build_dllama_cmd(
         str(NUM_THREADS),
         "--buffer-float-type",
         "q80",
-        "--prompt",
-        prompt,
     ]
+    if workers:
+        cmd.extend(["--workers", workers])
+
+    cmd.extend(["--prompt", prompt])
+    return cmd
 
 
 # ============================================================
@@ -104,8 +110,7 @@ def build_dllama_cmd(
 
 def run_single_prompt(
     config_id: str,
-    binary: str,
-    framework: str,
+    config: dict,
     model_path: str,
     prompt_data: dict,
     tokenizer_path: str = "",
@@ -115,21 +120,31 @@ def run_single_prompt(
     Execute one prompt and collect all metrics.
     Returns a dict with timing + resource metrics.
     """
+    binary = config["binary"]
+    framework = config["framework"]
     prompt_text = prompt_data["text"]
     n_predict = prompt_data["n_predict"]
 
     # Build command
     if framework == "llama.cpp":
-        cmd = build_llama_cpp_cmd(binary, model_path, prompt_text, n_predict)
+        cmd = build_llama_cpp_cmd(
+            binary, model_path, prompt_text, n_predict, config.get("rpc_servers", "")
+        )
+        print(" ".join(cmd))
         parser_fn = parse_llama_cpp_output
     elif framework == "distributed_llama":
         assert tokenizer_path != ""
         steps = n_predict
         if prompt_data["id"] == "P03":
-            # dllama --steps counts prompt + generation tokens;
-            # ensure it covers the full input for Comparative Analysis.
             steps = 450
-        cmd = build_dllama_cmd(binary, model_path, tokenizer_path, prompt_text, steps)
+        cmd = build_dllama_cmd(
+            binary,
+            model_path,
+            tokenizer_path,
+            prompt_text,
+            steps,
+            config.get("workers", ""),
+        )
         parser_fn = parse_dllama_output
     else:
         raise ValueError(f"Unknown framework: {framework}")
@@ -146,7 +161,6 @@ def run_single_prompt(
             stderr=subprocess.PIPE,
             text=True,
         )
-        # Start monitoring with the process PID
         monitor.start(pid=proc.pid)
 
         stdout, stderr = proc.communicate(timeout=600)  # 10 min timeout
@@ -197,28 +211,23 @@ def run_single_prompt(
         "input_category": prompt_data["input_category"],
         "output_category": prompt_data["output_category"],
         "n_predict": n_predict,
-        # Timing metrics
-        "ttft_ms": parsed["ttft_ms"],  # time to first token
-        "eval_rate_tps": parsed["eval_rate_tps"],  # token generation rate
-        "prompt_rate_tps": parsed["prompt_rate_tps"],  # prompt processing rate
-        "end_to_end_ms": parsed["total_time_ms"],  # total time
-        "load_time_ms": parsed["load_time_ms"],  # model load time
+        "ttft_ms": parsed["ttft_ms"],
+        "eval_rate_tps": parsed["eval_rate_tps"],
+        "prompt_rate_tps": parsed["prompt_rate_tps"],
+        "end_to_end_ms": parsed["total_time_ms"],
+        "load_time_ms": parsed["load_time_ms"],
         "prompt_eval_time_ms": parsed["prompt_eval_time_ms"],
         "eval_time_ms": parsed["eval_time_ms"],
         "prompt_tokens": parsed["prompt_tokens"],
         "eval_tokens": parsed["eval_tokens"],
         "total_tokens": parsed["total_tokens"],
-        # Resource metrics
-        "avg_cpu_pct": resource_metrics["avg_cpu_pct"],  # average CPU utilization
+        "avg_cpu_pct": resource_metrics["avg_cpu_pct"],
         "max_cpu_pct": resource_metrics["max_cpu_pct"],
-        "load_peak_mem_mb": load_peak_mem_mb,  # peak memory while model is loaded idle
-        "peak_mem_mb": resource_metrics["peak_mem_mb"],  # peak memory during inference
-        "avg_mem_mb": resource_metrics["avg_mem_mb"],  # average memory during inference
+        "load_peak_mem_mb": load_peak_mem_mb,
+        "peak_mem_mb": resource_metrics["peak_mem_mb"],
+        "avg_mem_mb": resource_metrics["avg_mem_mb"],
         "net_rx_mb": resource_metrics["net_rx_mb"],
         "net_tx_mb": resource_metrics["net_tx_mb"],
-        # Wall time from Python (backup)
-        # "wall_time_ms": round(wall_time_ms, 2),
-        # Metadata
         "returncode": returncode,
         "parse_errors": "; ".join(parsed.get("parse_errors", [])),
     }
@@ -232,22 +241,31 @@ def run_single_prompt(
 
 
 def measure_model_load_time(
-    binary: str, framework: str, model_path: str, tokenizer_path: str = ""
+    config: dict, model_path: str, tokenizer_path: str = ""
 ) -> tuple:
     """
     Measure model load time and peak RSS while the model is loaded idle,
     by running a minimal prompt with the resource monitor attached.
     Returns (load_time_ms, load_peak_mem_mb).
     """
+    binary = config["binary"]
+    framework = config["framework"]
     dummy_prompt = "Hi"
     n_predict = 1
 
     if framework == "llama.cpp":
-        cmd = build_llama_cpp_cmd(binary, model_path, dummy_prompt, n_predict)
+        cmd = build_llama_cpp_cmd(
+            binary, model_path, dummy_prompt, n_predict, config.get("rpc_servers", "")
+        )
         parser_fn = parse_llama_cpp_output
     elif framework == "distributed_llama":
         cmd = build_dllama_cmd(
-            binary, model_path, tokenizer_path, dummy_prompt, n_predict
+            binary,
+            model_path,
+            tokenizer_path,
+            dummy_prompt,
+            n_predict,
+            config.get("workers", ""),
         )
         parser_fn = parse_dllama_output
     else:
@@ -403,7 +421,7 @@ def run_benchmark(config_id: str, model_filter: str = "", dry_run: bool = False)
         if not dry_run:
             print(f"  Measuring model load time...")
             load_time, load_peak_mem_mb = measure_model_load_time(
-                binary, framework, model_path, tokenizer_path
+                config, model_path, tokenizer_path
             )
             print(
                 f"  Model load time: {load_time:.1f} ms | Load mem: {load_peak_mem_mb:.0f} MB"
@@ -435,6 +453,7 @@ def run_benchmark(config_id: str, model_filter: str = "", dry_run: bool = False)
                         model_path,
                         prompt_data["text"][:60] + "...",
                         prompt_data["n_predict"],
+                        config.get("rpc_servers", ""),
                     )
                 else:
                     cmd = build_dllama_cmd(
@@ -443,8 +462,9 @@ def run_benchmark(config_id: str, model_filter: str = "", dry_run: bool = False)
                         tokenizer_path,
                         prompt_data["text"][:60] + "...",
                         prompt_data["n_predict"],
+                        config.get("workers", ""),
                     )
-                print(f"    CMD: {' '.join(cmd[:8])} ...")
+                print(f"    CMD: {' '.join(cmd[:12])} ...")
                 continue
 
             # Run NUM_RUNS times
@@ -460,8 +480,7 @@ def run_benchmark(config_id: str, model_filter: str = "", dry_run: bool = False)
 
                 result, generated_text = run_single_prompt(
                     config_id,
-                    binary,
-                    framework,
+                    config,
                     model_path,
                     prompt_data,
                     tokenizer_path,
@@ -517,13 +536,13 @@ def run_benchmark(config_id: str, model_filter: str = "", dry_run: bool = False)
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Benchmark C1/C2 configurations for thesis experiments"
+        description="Benchmark Configurations for thesis experiments"
     )
     parser.add_argument(
         "--config",
         required=True,
-        choices=["C1", "C2"],
-        help="Configuration to run (C1=llama.cpp, C2=Distributed Llama)",
+        choices=["C1", "C2", "C3", "C4"],
+        help="Configuration to run (C1/C3=llama.cpp, C2/C4=Distributed Llama)",
     )
     parser.add_argument(
         "--model",
@@ -547,9 +566,9 @@ def main():
     if not args.dry_run:
         print("\n  ⚠  REMINDER: Reboot the Pi before each configuration run")
         print("     to clear residual state (as per Section 3.7.4).")
-        # resp = input("\n  Press Enter to start (or 'q' to quit): ")
-        # if resp.strip().lower() == "q":
-        # sys.exit(0)
+        if args.config in ["C3", "C4"]:
+            print("  ⚠  DISTRIBUTED RUN: Ensure the worker nodes are booted,")
+            print("     and their RPC/worker daemons are running before proceeding!")
 
     run_benchmark(args.config, model_filter=args.model, dry_run=args.dry_run)
 
