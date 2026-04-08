@@ -123,7 +123,7 @@ CONFIGURATIONS = {
         "framework": "llama.cpp",
         "binary": LLAMA_CPP_BIN,
         "distributed": True,
-        "rpc_servers": f"{WORKER_IP}:{RPC_PORT}",
+        "rpc_servers": f"{WORKER_IP}:{RPC_PORT},127.0.0.1:50052",
     },
     "C4": {
         "name": "Distributed Llama 2-node",
