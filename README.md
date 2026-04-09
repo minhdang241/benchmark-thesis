@@ -94,6 +94,20 @@ python3 benchmark.py --config C2
 python3 benchmark.py --config C1 --model qwen3-1.7b-q4_0
 ```
 
+Run the rpc server before running the config C3:
+```bash
+# Pi 1 (master, 192.168.1.110)
+./rpc-server -H 0.0.0.0 -p 50052
+
+# Pi 2 (worker, 192.168.1.111)
+./rpc-server -H 192.168.1.111 -p 50052
+```
+
+Run the dllama server before running the config C4:
+```bash
+
+```
+
 ## 6. Analyse Results
 
 ```bash

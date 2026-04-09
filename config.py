@@ -52,6 +52,12 @@ MODELS_LLAMA = {
         "approx_size_gb": 6.7,
     },
     # Tier C: Large models
+    "qwen3-14b-q4_0": {
+        "tier": "C",
+        "filename": "llama/tierC/qwen3-14B/qwen3-14b-q4_0.gguf",
+        "description": "Qwen3 14B Q4_0",
+        "approx_size_gb": 10,
+    },
     # "qwen3-30b-q4_0": {
     # "tier": "C",
     # "filename": "llama/tierC/qwen3-30B-A3B/qwen3-30b-a3b-instruct-2507-q4_0.gguf",
@@ -93,6 +99,13 @@ MODELS_DLLAMA = {
         "approx_size_gb": 6.7,
     },
     # Tier C: Large models
+    "qwen3-14b-q4_0": {
+        "tier": "C",
+        "filename": "dllama/tierC/qwen3-14B/dllama_model_qwen3_14b_q40.m",
+        "tokenizer_name": "dllama/tierC/qwen3-14B/dllama_tokenizer_qwen3_14b_q40.t",
+        "description": "Qwen3 14B Q4_0",
+        "approx_size_gb": 10,
+    },
     # "qwen3-30b-q4_0": {
     # "tier": "C",
     # "filename": "dllama/tierC/qwen3-30B-A3B/dllama_model_qwen3_30b_a3b_q40.m",
