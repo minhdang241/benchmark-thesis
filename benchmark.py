@@ -161,7 +161,7 @@ def run_single_prompt(
         )
         monitor.start(pid=proc.pid)
 
-        stdout, stderr = proc.communicate(timeout=600)  # 10 min timeout
+        stdout, stderr = proc.communicate(timeout=1800)  # 30 min timeout
         wall_end = time.monotonic()
         wall_time_ms = (wall_end - wall_start) * 1000.0
         returncode = proc.returncode
@@ -276,7 +276,7 @@ def measure_model_load_time(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
         monitor.start(pid=proc.pid)
-        stdout, stderr = proc.communicate(timeout=300)
+        stdout, stderr = proc.communicate(timeout=1800)
         wall_time_ms = (time.monotonic() - wall_start) * 1000.0
         resource_metrics = monitor.stop()
         parsed = parser_fn(stderr, stdout, wall_time_ms)
