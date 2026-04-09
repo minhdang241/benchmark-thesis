@@ -61,8 +61,6 @@ def build_llama_cpp_cmd(
         "--single-turn",
         "--no-display-prompt",
         "-no-cnv",
-        "-ts",
-        "1,10",
     ]
     if rpc_servers:
         cmd.extend(["--rpc", rpc_servers])
